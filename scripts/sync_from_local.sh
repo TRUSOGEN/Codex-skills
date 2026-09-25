@@ -37,6 +37,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 import csv
 import hashlib
+import os
 import sys
 
 source_root = Path(sys.argv[1])
@@ -53,17 +54,21 @@ managed.add("scripts/sync_from_local.sh")
 
 def local_time(path: Path) -> str:
     """Format a file modification time in the user's Sydney timezone."""
-    return datetime.fromtimestamp(path.stat().st_mtime, ZoneInfo("Australia/Sydney")).isoformat(timespec="seconds")
+    stat = path.lstat() if path.is_symlink() else path.stat()
+    return datetime.fromtimestamp(stat.st_mtime, ZoneInfo("Australia/Sydney")).isoformat(timespec="seconds")
 
 for path in sorted(repo_root.rglob("*")):
-    if not path.is_file() or path == manifest or ".git" in path.parts:
+    if (not path.is_file() and not path.is_symlink()) or path == manifest or ".git" in path.parts:
         continue
     relative = path.relative_to(repo_root)
     source_path = source_root / relative
-    is_source = relative.as_posix() not in managed and source_path.is_file()
-    data = path.read_bytes()
+    is_source = relative.as_posix() not in managed and (source_path.is_file() or source_path.is_symlink())
+    link_target = os.readlink(path) if path.is_symlink() else ""
+    data = link_target.encode("utf-8") if path.is_symlink() else path.read_bytes()
     row = {
         "path": relative.as_posix(),
+        "entry_type": "symlink" if path.is_symlink() else "file",
+        "link_target": link_target,
         "source_modified_at_sydney": local_time(source_path) if is_source else "",
         "size_bytes": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
@@ -73,14 +78,14 @@ for path in sorted(repo_root.rglob("*")):
     row["snapshot_at_sydney"] = previous.get("snapshot_at_sydney", snapshot) if unchanged else snapshot
     rows.append(row)
 
-tracked_fields = ("path", "source_modified_at_sydney", "size_bytes", "sha256")
+tracked_fields = ("path", "entry_type", "link_target", "source_modified_at_sydney", "size_bytes", "sha256")
 manifest_changed = len(rows) != len(old_rows) or any(
     any(old_rows.get(row["path"], {}).get(key) != row[key] for key in tracked_fields)
     for row in rows
 )
 if manifest_changed:
     with manifest.open("w", encoding="utf-8", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     print(f"Updated {manifest.name}: {len(rows)} files at {snapshot}")

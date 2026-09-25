@@ -2,7 +2,7 @@
 
 This repository is a dated snapshot of the local collection in `TRUSOGEN/GitHub/skills`. It keeps each package under its original folder name so the sources remain easy to identify.
 
-Initial snapshot: 2026-09-25, Australia/Sydney. `SOURCE_MANIFEST.csv` records source modification time, snapshot time, file size, and SHA-256 for every packaged file except the manifest itself. Git commit time alone does not preserve source file timestamps.
+Initial snapshot: 2026-09-25, Australia/Sydney. `SOURCE_MANIFEST.csv` records source modification time, snapshot time, entry type, size, and SHA-256 for every packaged file or symlink except the manifest itself. Symlink checksums cover the stored relative link target. Git commit time alone does not preserve source file timestamps.
 
 ## Included collections
 
