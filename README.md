@@ -28,4 +28,4 @@ The current Mac source folder remains `/Users/trusoegn/GitHub/skills/`. After it
 ./scripts/sync_from_local.sh
 ```
 
-The helper fast-forwards `main`, copies changed files while excluding nested `.git` directories and `.DS_Store`, refreshes the timestamp/checksum manifest, commits the snapshot, and pushes it to GitHub. Pass a source directory as the first argument if it is elsewhere. It stops before copying when the destination clone already has uncommitted edits.
+The helper fast-forwards `main`, copies changed files while excluding nested `.git` directories and `.DS_Store`, refreshes the timestamp/checksum manifest only when source files change, commits the snapshot, and pushes through the configured GitHub SSH key. Pass a source directory as the first argument if it is elsewhere. It stops before copying when the destination clone already has uncommitted edits.

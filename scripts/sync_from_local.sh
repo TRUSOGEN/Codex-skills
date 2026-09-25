@@ -20,6 +20,7 @@ if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
   exit 2
 fi
 
+git -C "$REPO_ROOT" remote set-url --push origin git@github.com:TRUSOGEN/Codex-skills.git
 git -C "$REPO_ROOT" pull --ff-only origin main
 rsync -a --delete \
   --exclude='.git/' \
@@ -72,7 +73,12 @@ for path in sorted(repo_root.rglob("*")):
     row["snapshot_at_sydney"] = previous.get("snapshot_at_sydney", snapshot) if unchanged else snapshot
     rows.append(row)
 
-if len(rows) != len(old_rows) or any(row["snapshot_at_sydney"] != old_rows.get(row["path"], {}).get("snapshot_at_sydney") for row in rows):
+tracked_fields = ("path", "source_modified_at_sydney", "size_bytes", "sha256")
+manifest_changed = len(rows) != len(old_rows) or any(
+    any(old_rows.get(row["path"], {}).get(key) != row[key] for key in tracked_fields)
+    for row in rows
+)
+if manifest_changed:
     with manifest.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
         writer.writeheader()
